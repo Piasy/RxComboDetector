@@ -1,0 +1,32 @@
+apply plugin: 'com.android.library'
+apply from: "${rootProject.rootDir}/bintray.gradle"
+
+android {
+    compileSdkVersion rootProject.ext.androidCompileSdkVersion
+    buildToolsVersion rootProject.ext.androidBuildToolsVersion
+
+    defaultConfig {
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode rootProject.ext.releaseVersionCode
+        versionName rootProject.ext.releaseVersionName
+    }
+
+    testOptions.unitTests.all {
+        testLogging {
+            events 'passed', 'skipped', 'failed', 'standardOut', 'standardError'
+            outputs.upToDateWhen { false }
+            showStandardStreams = true
+        }
+    }
+}
+
+dependencies {
+    compile "com.android.support:support-annotations:${rootProject.ext.androidSupportSdkVersion}"
+    compile 'io.reactivex:rxjava:1.1.0'
+    compile ('io.reactivex:rxandroid:1.1.0') {
+        exclude module: 'rxjava'
+    }
+
+    testCompile 'junit:junit:4.12'
+}
