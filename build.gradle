@@ -25,7 +25,7 @@ task clean(type: Delete) {
 }
 
 ext {
-    groupName = 'com.github.piasy.rxcombodetector'
+    groupName = 'com.github.piasy'
     releaseVersionCode = 1
     releaseVersionName = '1.0.0'
 
