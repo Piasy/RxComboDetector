@@ -1,15 +1,11 @@
 package com.github.piasy.rxcombodetector;
 
-import android.support.annotation.NonNull;
-import java.util.List;
-import java.util.concurrent.Executor;
+import io.reactivex.BackpressureStrategy;
+import io.reactivex.Flowable;
+import io.reactivex.schedulers.Schedulers;
+import io.reactivex.subscribers.TestSubscriber;
 import java.util.concurrent.TimeUnit;
-import org.junit.Assert;
 import org.junit.Test;
-import rx.Observable;
-import rx.Subscriber;
-import rx.observers.TestSubscriber;
-import rx.schedulers.Schedulers;
 
 /**
  * To work on unit tests, switch the Test Artifact in the Build Variants view.
@@ -17,49 +13,39 @@ import rx.schedulers.Schedulers;
 public class RxComboDetectorTest {
     @Test
     public void testDetect() {
-        Observable<Void> mockClicks = Observable.create(new Observable.OnSubscribe<Void>() {
-            @Override
-            public void call(Subscriber<? super Void> subscriber) {
-                subscriber.onNext(null);
-                sleepSilently(50);
-                subscriber.onNext(null);
-                sleepSilently(50);
-                subscriber.onNext(null);
-                sleepSilently(50);
-                subscriber.onNext(null);
+        Flowable<Integer> mockClicks = Flowable
+                .create(emitter -> {
+                    emitter.onNext(1);
+                    sleepSilently(50);
+                    emitter.onNext(1);
+                    sleepSilently(50);
+                    emitter.onNext(1);
+                    sleepSilently(50);
+                    emitter.onNext(1);
 
-                sleepSilently(150);
+                    sleepSilently(150);
 
-                subscriber.onNext(null);
-                sleepSilently(50);
-                subscriber.onNext(null);
+                    emitter.onNext(1);
+                    sleepSilently(50);
+                    emitter.onNext(1);
 
-                sleepSilently(150);
-                subscriber.onNext(null);
+                    sleepSilently(150);
+                    emitter.onNext(1);
 
-                sleepSilently(150);
-                subscriber.onNext(null);
+                    sleepSilently(150);
+                    emitter.onNext(1);
 
-                subscriber.onCompleted();
-            }
-        }).subscribeOn(Schedulers.from(new Executor() {
-            @Override
-            public void execute(@NonNull Runnable command) {
-                new Thread(command).start();
-            }
-        }));
+                    emitter.onComplete();
+                }, BackpressureStrategy.BUFFER);
 
         TestSubscriber<Integer> subscriber = new TestSubscriber<>();
         RxComboDetector.detect(mockClicks, 100, 2)
+                .subscribeOn(Schedulers.from(command -> new Thread(command).start()))
                 .subscribe(subscriber);
 
-        subscriber.awaitTerminalEventAndUnsubscribeOnTimeout(30, TimeUnit.SECONDS);
-        List<Integer> items = subscriber.getOnNextEvents();
-        Assert.assertEquals(4, items.size());
-        Assert.assertEquals(2, items.get(0).intValue());
-        Assert.assertEquals(3, items.get(1).intValue());
-        Assert.assertEquals(4, items.get(2).intValue());
-        Assert.assertEquals(2, items.get(3).intValue());
+        subscriber.awaitTerminalEvent(30, TimeUnit.SECONDS);
+        subscriber.assertValueCount(4);
+        subscriber.assertValues(2, 3, 4, 2);
     }
 
     private void sleepSilently(long millis) {

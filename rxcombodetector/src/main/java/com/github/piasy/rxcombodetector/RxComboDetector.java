@@ -26,11 +26,12 @@ package com.github.piasy.rxcombodetector;
 
 import android.support.annotation.IntRange;
 import android.support.annotation.NonNull;
+import android.support.annotation.VisibleForTesting;
 import android.view.View;
-import rx.Observable;
-import rx.functions.Func1;
-import rx.functions.Func2;
-import rx.schedulers.Timestamped;
+import hu.akarnokd.rxjava.interop.RxJavaInterop;
+import io.reactivex.BackpressureStrategy;
+import io.reactivex.Flowable;
+import io.reactivex.schedulers.Timed;
 
 import static com.github.piasy.rxcombodetector.Preconditions.checkArgument;
 import static com.github.piasy.rxcombodetector.Preconditions.checkNotNull;
@@ -59,54 +60,43 @@ public final class RxComboDetector {
         mMinComboTimesCared = minComboTimesCared;
     }
 
+    @VisibleForTesting
+    static Flowable<Integer> detect(Flowable<Integer> clicks, final long maxIntervalMillis,
+            final int minComboTimesCared) {
+        return clicks.timestamp()
+                .scan((lastOne, thisOne) -> {
+                    if (thisOne.time() - lastOne.time() <= maxIntervalMillis) {
+                        return new Timed<>(lastOne.value() + 1, thisOne.time(), thisOne.unit());
+                    } else {
+                        return new Timed<>(1, thisOne.time(), thisOne.unit());
+                    }
+                })
+                .map(Timed::value)
+                .filter(combo -> combo >= minComboTimesCared);
+    }
+
     /**
      * start combo detect
      *
      * <p>
-     * <em>Warning:</em> The created observable keeps a strong reference to {@code view}. Unsubscribe
+     * <em>Warning:</em> The created observable keeps a strong reference to {@code view}.
+     * Unsubscribe
      * to free this reference.
      * <p>
      * <em>Warning:</em> The created observable uses {@link View#setOnClickListener} to observe
      * clicks. Only one observable can be used for a view at a time.
      *
-     * @return {@link Observable} that emits combo times.
+     * @return {@link Flowable} that emits combo times.
      */
-    public Observable<Integer> start() {
-        return detect(Observable.create(new ViewClickOnSubscribe(mTarget)), mMaxIntervalMillis,
-                mMinComboTimesCared);
+    public Flowable<Integer> start() {
+        return detect(
+                Flowable.create(new ViewClickOnSubscribe(mTarget), BackpressureStrategy.LATEST),
+                mMaxIntervalMillis, mMinComboTimesCared);
     }
 
-    static Observable<Integer> detect(Observable<Void> clicks, final long maxIntervalMillis,
-            final int minComboTimesCared) {
-        return clicks.map(new Func1<Void, Integer>() {
-                @Override
-                public Integer call(Void aVoid) {
-                    return 1;
-                }
-            }).timestamp()
-            .scan(new Func2<Timestamped<Integer>, Timestamped<Integer>, Timestamped<Integer>>() {
-                @Override
-                public Timestamped<Integer> call(Timestamped<Integer> lastOne,
-                        Timestamped<Integer> thisOne) {
-                    if (thisOne.getTimestampMillis() - lastOne.getTimestampMillis() <=
-                            maxIntervalMillis) {
-                        return new Timestamped<>(thisOne.getTimestampMillis(),
-                                lastOne.getValue() + 1);
-                    } else {
-                        return new Timestamped<>(thisOne.getTimestampMillis(), 1);
-                    }
-                }
-            }).map(new Func1<Timestamped<Integer>, Integer>() {
-                @Override
-                public Integer call(Timestamped<Integer> timestamped) {
-                    return timestamped.getValue();
-                }
-            }).filter(new Func1<Integer, Boolean>() {
-                @Override
-                public Boolean call(Integer combo) {
-                    return combo >= minComboTimesCared;
-                }
-            });
+    @Deprecated
+    public rx.Observable<Integer> startAsV1Observable() {
+        return RxJavaInterop.toV1Observable(start());
     }
 
     /**
@@ -149,6 +139,7 @@ public final class RxComboDetector {
 
         /**
          * set {@link #mMinComboTimesCared}
+         *
          * @param minComboTimesCared combo detect min cared times
          * @return {@link Builder} instance after {@link #mMinComboTimesCared} set
          */
@@ -160,6 +151,7 @@ public final class RxComboDetector {
 
         /**
          * set {@link #mTarget}
+         *
          * @param target target to detect combo on
          * @return {@link RxComboDetector} instance
          */

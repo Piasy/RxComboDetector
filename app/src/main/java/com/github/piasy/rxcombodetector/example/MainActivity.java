@@ -9,8 +9,8 @@ import android.widget.TextView;
 import butterknife.Bind;
 import butterknife.ButterKnife;
 import com.github.piasy.rxcombodetector.RxComboDetector;
-import rx.android.schedulers.AndroidSchedulers;
-import rx.functions.Action1;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.functions.Consumer;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -33,9 +33,9 @@ public class MainActivity extends AppCompatActivity {
                 .detectOn(mBtnCombo)
                 .start()
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Action1<Integer>() {
+                .subscribe(new Consumer<Integer>() {
                     @Override
-                    public void call(Integer combo) {
+                    public void accept(Integer combo) throws Exception {
                         mTextView.setText(mTextView.getText() + "Combo x " + combo + "\n");
                         mScrollView.fullScroll(View.FOCUS_DOWN);
                         mYOLOComboView.combo(combo);

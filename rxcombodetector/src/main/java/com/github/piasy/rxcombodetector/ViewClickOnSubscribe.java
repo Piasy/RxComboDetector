@@ -17,35 +17,35 @@
 package com.github.piasy.rxcombodetector;
 
 import android.view.View;
-import rx.Observable;
-import rx.Subscriber;
-import rx.android.MainThreadSubscription;
+import io.reactivex.FlowableEmitter;
+import io.reactivex.FlowableOnSubscribe;
+import io.reactivex.android.MainThreadDisposable;
 
 import static com.github.piasy.rxcombodetector.Preconditions.checkUiThread;
 
-final class ViewClickOnSubscribe implements Observable.OnSubscribe<Void> {
-  final View view;
+final class ViewClickOnSubscribe implements FlowableOnSubscribe<Integer> {
+    private final View view;
 
-  ViewClickOnSubscribe(View view) {
-    this.view = view;
-  }
+    ViewClickOnSubscribe(View view) {
+        this.view = view;
+    }
 
-  @Override public void call(final Subscriber<? super Void> subscriber) {
-    checkUiThread();
+    @Override
+    public void subscribe(final FlowableEmitter<Integer> emitter) throws Exception {
+        checkUiThread();
 
-    View.OnClickListener listener = new View.OnClickListener() {
-      @Override public void onClick(View v) {
-        if (!subscriber.isUnsubscribed()) {
-          subscriber.onNext(null);
-        }
-      }
-    };
-    view.setOnClickListener(listener);
+        View.OnClickListener listener = v -> {
+            if (!emitter.isCancelled()) {
+                emitter.onNext(1);
+            }
+        };
+        view.setOnClickListener(listener);
 
-    subscriber.add(new MainThreadSubscription() {
-      @Override protected void onUnsubscribe() {
-        view.setOnClickListener(null);
-      }
-    });
-  }
+        emitter.setDisposable(new MainThreadDisposable() {
+            @Override
+            protected void onDispose() {
+                view.setOnClickListener(null);
+            }
+        });
+    }
 }

@@ -16,17 +16,17 @@ import com.facebook.rebound.Spring;
 import com.facebook.rebound.SpringConfig;
 import com.facebook.rebound.SpringSystem;
 import com.facebook.rebound.SpringUtil;
+import io.reactivex.Flowable;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.functions.Consumer;
 import java.util.concurrent.TimeUnit;
-import rx.Observable;
-import rx.Subscription;
-import rx.android.schedulers.AndroidSchedulers;
-import rx.functions.Action1;
 
 public class YOLOComboView extends FrameLayout {
 
     private final ComboSpringListener mSpringListener;
     private final Spring mComboSpring;
-    private Subscription mComboHideSubscription;
+    private Disposable mComboHideDisposable;
 
     private final ImageView mYOLOLogo;
     private final TextView mComboText;
@@ -75,9 +75,9 @@ public class YOLOComboView extends FrameLayout {
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
         mComboSpring.removeAllListeners();
-        if (mComboHideSubscription != null && !mComboHideSubscription.isUnsubscribed()) {
-            mComboHideSubscription.unsubscribe();
-            mComboHideSubscription = null;
+        if (mComboHideDisposable != null && !mComboHideDisposable.isDisposed()) {
+            mComboHideDisposable.dispose();
+            mComboHideDisposable = null;
         }
     }
 
@@ -87,14 +87,14 @@ public class YOLOComboView extends FrameLayout {
         mComboSpring.setEndValue(1);
         show();
 
-        if (mComboHideSubscription != null && !mComboHideSubscription.isUnsubscribed()) {
-            mComboHideSubscription.unsubscribe();
+        if (mComboHideDisposable != null && !mComboHideDisposable.isDisposed()) {
+            mComboHideDisposable.dispose();
         }
-        mComboHideSubscription = Observable.timer(2, TimeUnit.SECONDS)
+        mComboHideDisposable = Flowable.timer(2, TimeUnit.SECONDS)
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Action1<Long>() {
+                .subscribe(new Consumer<Long>() {
                     @Override
-                    public void call(Long aLong) {
+                    public void accept(Long aLong) throws Exception {
                         hide();
                     }
                 }, RxUtils.IgnoreErrorProcessor);

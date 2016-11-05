@@ -1,16 +1,16 @@
 package com.github.piasy.rxcombodetector.example;
 
 import android.util.Log;
-import rx.functions.Action1;
+import io.reactivex.functions.Consumer;
 
 /**
  * Created by Piasy{github.com/Piasy} on 16/1/12.
  */
 public class RxUtils {
 
-    public static Action1<Throwable> IgnoreErrorProcessor = new Action1<Throwable>() {
+    public static Consumer<Throwable> IgnoreErrorProcessor = new Consumer<Throwable>() {
         @Override
-        public void call(Throwable throwable) {
+        public void accept(Throwable throwable) {
             Log.e("IgnoreErrorProcessor", "Rx onError: ", throwable);
         }
     };
